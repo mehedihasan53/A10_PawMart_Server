@@ -56,6 +56,14 @@ async function run() {
             console.log(orderData);
         });
 
+
+        // recent listings
+        app.get("/recent-listings", async (req, res) => {
+            const result = await pets.find({}).sort({ _id: -1 }).limit(6).toArray();
+            res.send(result);
+        })
+
+
         await client.db("admin").command({ ping: 1 });
         console.log(
             "Pinged your deployment. You successfully connected to MongoDB!"
