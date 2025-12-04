@@ -24,13 +24,33 @@ async function run() {
     try {
 
         await client.connect();
+        // collection
+        const database = client.db('petListing')
+        const pets = database.collection('pets')
+
 
         //    add listing
-        app.post('/addPet', async (req, res) => {
+        app.post('/listings', async (req, res) => {
             const pet = req.body;
-            const result = await client.db("admin").collection("pets").insertOne(pet);
+            const result = await pets.insertOne(pet);
+            res.send(result);
+            console.log(pet);
+
+        })
+
+        // get listing
+        app.get('/listings', async (req, res) => {
+            const result = await pets.find().toArray();
             res.send(result);
         })
+
+        app.get('/listings/:id', async (req, res) => {
+            const id = req.params;
+            const query = { _id: new ObjectId(id) };
+            const result = await pets.findOne(query);
+            res.send(result);
+        })
+
 
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
