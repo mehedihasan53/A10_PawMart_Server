@@ -48,6 +48,14 @@ async function run() {
             res.send(result);
         });
 
+        // my listings
+        app.get("/my-listings", async (req, res) => {
+            const { email } = req.query;
+            const query = { email: email };
+            const result = await pets.find(query).toArray();
+            res.send(result);
+        })
+
         // add order
         app.post("/orders", async (req, res) => {
             const orderData = req.body;
@@ -60,6 +68,13 @@ async function run() {
         // recent listings
         app.get("/recent-listings", async (req, res) => {
             const result = await pets.find({}).sort({ _id: -1 }).limit(6).toArray();
+            res.send(result);
+        })
+
+        // category listings
+        app.get("/listings/category/:category", async (req, res) => {
+            const category = req.params.category;
+            const result = await pets.find({ category: category }).toArray();
             res.send(result);
         })
 
