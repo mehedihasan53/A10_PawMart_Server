@@ -56,15 +56,6 @@ async function run() {
             res.send(result);
         })
 
-        // add order
-        app.post("/orders", async (req, res) => {
-            const orderData = req.body;
-            const result = await order.insertOne(orderData);
-            res.send(result);
-            console.log(orderData);
-        });
-
-
         // recent listings
         app.get("/recent-listings", async (req, res) => {
             const result = await pets.find({}).sort({ _id: -1 }).limit(6).toArray();
@@ -75,6 +66,25 @@ async function run() {
         app.get("/listings/category/:category", async (req, res) => {
             const category = req.params.category;
             const result = await pets.find({ category: category }).toArray();
+            res.send(result);
+        })
+
+        // add order
+        app.post("/orders", async (req, res) => {
+            const orderData = req.body;
+            const result = await order.insertOne(orderData);
+            res.send(result);
+            console.log(orderData);
+        });
+
+        // update order
+
+
+        // deleted listing
+        app.delete("/listings/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await pets.deleteOne(query);
             res.send(result);
         })
 
