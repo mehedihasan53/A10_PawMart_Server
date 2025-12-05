@@ -77,7 +77,18 @@ async function run() {
             console.log(orderData);
         });
 
-        // update order
+        // update listing
+        app.put("/listings/:id", async (req, res) => {
+            const data = req.body;
+            const id = req.params;
+            const query = { _id: new ObjectId(id) };
+
+            const updateListing = {
+                $set: data
+            }
+            const result = await pets.updateOne(query, updateListing);
+            res.send(result);
+        })
 
 
         // deleted listing
