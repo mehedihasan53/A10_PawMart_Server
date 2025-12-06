@@ -8,8 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const uri =
-    "mongodb+srv://petDB:kwMVALRXzXS4LB0H@cluster0.ktf2bwl.mongodb.net/?appName=Cluster0";
+const uri = process.env.MONGODB_URI;
 
 const client = new MongoClient(uri, {
     serverApi: {
@@ -21,7 +20,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-        await client.connect();
+        // await client.connect();
         // collection
         const database = client.db("petListing");
         const pets = database.collection("pets");
@@ -99,8 +98,16 @@ async function run() {
             res.send(result);
         })
 
+        // get orders
+        app.get("/orders", async (req, res) => {
+            const { email } = req.query;
+            const result = await order.find({ email: email }).toArray();
+            res.send(result);
+        })
 
-        await client.db("admin").command({ ping: 1 });
+
+
+        // await client.db("admin").command({ ping: 1 });
         console.log(
             "Pinged your deployment. You successfully connected to MongoDB!"
         );
