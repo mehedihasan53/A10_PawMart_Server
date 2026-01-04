@@ -2,14 +2,15 @@ const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 require("dotenv").config();
-const port = 3000;
 
 const app = express();
+const port = process.env.PORT || 3000;
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
 const uri = process.env.MONGODB_URI;
-
 const client = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
@@ -20,107 +21,143 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-        // await client.connect();
-        // collection
-        const database = client.db("petListing");
-        const pets = database.collection("pets");
-        const order = database.collection("orders");
+        // Database Collections
+        const db = client.db("petListing");
+        const petsCollection = db.collection("pets");
+        const ordersCollection = db.collection("orders");
+        const usersCollection = db.collection("users");
 
-        //    add listing
+        // --- User Management ---
+
+        // Create or update user info on login
+        app.put("/users", async (req, res) => {
+            const user = req.body;
+            const query = { email: user.email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    name: user.name,
+                    email: user.email,
+                    photoURL: user.photoURL,
+                    role: user.role || "user",
+                },
+            };
+            const result = await usersCollection.updateOne(query, updateDoc, options);
+            res.send(result);
+        });
+
+        // Get specific user role
+        app.get("/users/role/:email", async (req, res) => {
+            const email = req.params.email;
+            const user = await usersCollection.findOne({ email });
+            res.send({ role: user?.role });
+        });
+
+        // Get all users
+        app.get("/users", async (req, res) => {
+            const result = await usersCollection.find().toArray();
+            res.send(result);
+        });
+
+        // Update user role to admin
+        app.patch("/users/admin/:id", async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = { $set: { role: "admin" } };
+            const result = await usersCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        });
+
+        // Delete a user
+        app.delete("/users/:id", async (req, res) => {
+            const id = req.params.id;
+            const result = await usersCollection.deleteOne({ _id: new ObjectId(id) });
+            res.send(result);
+        });
+
+        // --- Listings ---
+
+        // Add new listing
         app.post("/listings", async (req, res) => {
-            const pet = req.body;
-            const result = await pets.insertOne(pet);
+            const result = await petsCollection.insertOne(req.body);
             res.send(result);
-            console.log(pet);
         });
 
-        //    get all listings
+        // Get all listings
         app.get("/listings", async (req, res) => {
-            const result = await pets.find({}).toArray();
+            const result = await petsCollection.find().toArray();
             res.send(result);
         });
 
+        // Get single listing by ID
         app.get("/listings/:id", async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await pets.findOne(query);
+            const query = { _id: new ObjectId(req.params.id) };
+            const result = await petsCollection.findOne(query);
             res.send(result);
         });
 
-        // my listings
-        app.get("/my-listings", async (req, res) => {
-            const { email } = req.query;
-            const query = { email: email };
-            const result = await pets.find(query).toArray();
-            res.send(result);
-        })
-
-        // recent listings
-        app.get("/recent-listings", async (req, res) => {
-            const result = await pets.find({}).sort({ _id: -1 }).limit(6).toArray();
-            res.send(result);
-        })
-
-        // category listings
-        app.get("/listings/category/:category", async (req, res) => {
-            const category = req.params.category;
-            const result = await pets.find({ category: category }).toArray();
-            res.send(result);
-        })
-
-        // add order
-        app.post("/orders", async (req, res) => {
-            const orderData = req.body;
-            const result = await order.insertOne(orderData);
-            res.send(result);
-            console.log(orderData);
-        });
-
-        // update listing
-        app.put("/listings/:id", async (req, res) => {
-            const data = req.body;
-            const id = req.params;
-            const query = { _id: new ObjectId(id) };
-
-            const updateListing = {
-                $set: data
-            }
-            const result = await pets.updateOne(query, updateListing);
-            res.send(result);
-        })
-
-
-        // deleted listing
+        // Delete a listing
         app.delete("/listings/:id", async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await pets.deleteOne(query);
+            const query = { _id: new ObjectId(req.params.id) };
+            const result = await petsCollection.deleteOne(query);
             res.send(result);
-        })
+        });
 
-        // get orders
+        // Update user profile
+        app.patch("/users/update/:email", async (req, res) => {
+            const email = req.params.email;
+            const { name, photoURL } = req.body;
+            const filter = { email: email };
+            const updateDoc = {
+                $set: {
+                    name: name,
+                    photoURL: photoURL
+                },
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        });
+
+
+        // --- Order Management ---
+
+        // Get user orders
         app.get("/orders", async (req, res) => {
-            const { email } = req.query;
-            const result = await order.find({ email: email }).toArray();
+            const result = await ordersCollection
+                .find({ email: req.query.email })
+                .toArray();
             res.send(result);
-        })
+        });
 
+        // Create new order
+        app.post("/orders", async (req, res) => {
+            const result = await ordersCollection.insertOne(req.body);
+            res.send(result);
+        });
 
+        // --- Analytics ---
 
-        // await client.db("admin").command({ ping: 1 });
-        console.log(
-            "Pinged your deployment. You successfully connected to MongoDB!"
-        );
-    } finally {
-        // await client.close();
+        // Get total stats for Admin Dashboard
+        app.get("/admin-stats", async (req, res) => {
+            const totalUsers = await usersCollection.estimatedDocumentCount();
+            const totalPets = await petsCollection.estimatedDocumentCount();
+            const totalOrders = await ordersCollection.estimatedDocumentCount();
+
+            const chartData = await petsCollection.aggregate([
+                { $group: { _id: "$category", count: { $sum: 1 } } },
+                { $project: { category: "$_id", count: 1, _id: 0 } }
+            ]).toArray();
+
+            res.send({ totalUsers, totalPets, totalOrders, chartData });
+        });
+
+        console.log("Database Connection Verified.");
+    } catch (error) {
+        console.error("Database Error:", error);
     }
 }
+
 run().catch(console.dir);
 
-app.get("/", (req, res) => {
-    res.send("Hello World!");
-});
-
-app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`);
-});
+app.get("/", (req, res) => res.send("PawMart Server Active"));
+app.listen(port, () => console.log(`Server running on port ${port}`));
