@@ -100,8 +100,25 @@ async function run() {
             res.send(result);
         });
 
+        // Get listings based on specific email
+        app.get("/my-listings", async (req, res) => {
+            const email = req.query.email;
+            if (!email) {
+                return res.status(400).send({ message: "Email is required" });
+            }
+            const query = { email: email };
+            const result = await petsCollection.find(query).toArray();
+            res.send(result);
+        });
 
-        // --- Order Management ---
+        app.put("/listings/:id", async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updatedListing = { $set: req.body }; 
+
+            const result = await petsCollection.updateOne(filter, updatedListing);
+            res.send(result);
+        });
 
         // Get user orders
         app.get("/orders", async (req, res) => {
@@ -130,8 +147,6 @@ async function run() {
                 res.status(500).send({ message: "Error fetching recent listings" });
             }
         });
-
-        // --- Analytics ---
 
         // Get total stats for Admin Dashboard
         app.get("/admin-stats", async (req, res) => {
