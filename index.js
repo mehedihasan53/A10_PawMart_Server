@@ -27,7 +27,6 @@ async function run() {
         const ordersCollection = db.collection("orders");
         const usersCollection = db.collection("users");
 
-        // --- User Management ---
 
         // Create or update user info on login
         app.put("/users", async (req, res) => {
@@ -53,7 +52,7 @@ async function run() {
             res.send({ role: user?.role });
         });
 
-        // Get all users
+        // Get all users (Admin only)
         app.get("/users", async (req, res) => {
             const result = await usersCollection.find().toArray();
             res.send(result);
@@ -74,8 +73,6 @@ async function run() {
             const result = await usersCollection.deleteOne({ _id: new ObjectId(id) });
             res.send(result);
         });
-
-        // --- Listings ---
 
         // Add new listing
         app.post("/listings", async (req, res) => {
@@ -103,21 +100,6 @@ async function run() {
             res.send(result);
         });
 
-        // Update user profile
-        app.patch("/users/update/:email", async (req, res) => {
-            const email = req.params.email;
-            const { name, photoURL } = req.body;
-            const filter = { email: email };
-            const updateDoc = {
-                $set: {
-                    name: name,
-                    photoURL: photoURL
-                },
-            };
-            const result = await usersCollection.updateOne(filter, updateDoc);
-            res.send(result);
-        });
-
 
         // --- Order Management ---
 
@@ -133,6 +115,20 @@ async function run() {
         app.post("/orders", async (req, res) => {
             const result = await ordersCollection.insertOne(req.body);
             res.send(result);
+        });
+
+        //  recent listings 
+        app.get("/recent-listings", async (req, res) => {
+            try {
+                const result = await petsCollection
+                    .find()
+                    .sort({ _id: -1 })
+                    .limit(6)
+                    .toArray();
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({ message: "Error fetching recent listings" });
+            }
         });
 
         // --- Analytics ---
